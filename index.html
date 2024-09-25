@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Arbitrary Rotations</title>
+</head>
+
+<body>
+    <canvas id="canv"></canvas>
+    <script>
+        canvas = document.querySelector("#canv")
+        canvas.width = 800
+        canvas.height = 800
+        ctx = canvas.getContext("2d")
+
+
+        let width = 200
+        let height = 100
+        let rotation = 1
+
+        //The contain-everything values
+        let mx = 0;
+        let my = 0
+
+        //The contain-image-only scalar
+        let scalar = .5
+        let minScalar = Math.min(width / height, height / width)
+        let maxScalar = 1
+        let interpolate = 0;
+
+        //Debug Points
+        debugPoints = []
+
+        function tick() {
+            update()
+            draw()
+        }
+
+        function rotatePoint(point, amount) {
+            dx = point.x
+            dy = point.y
+            radius = Math.sqrt(dx ** 2 + dy ** 2);
+            angle = Math.atan2(dy, dx);
+            angle += rotation
+            nx = Math.cos(angle) * radius
+            ny = Math.sin(angle) * radius;
+            return {x:nx,y:ny}
+        }
+
+        function update() {
+
+            //Calculate the contain-everything canvas
+
+            mx = 0;
+            my = 0
+            let points = [{ x: -width / 2, y: -height / 2 }, { x: width / 2, y: -height / 2 }, { x: width / 2, y: height / 2 }, { x: -width / 2, y: height / 2 }]
+            let newPoints = []
+            for (let point of points) {
+                dx = point.x
+                dy = point.y
+                radius = Math.sqrt(dx ** 2 + dy ** 2);
+                angle = Math.atan2(dy, dx);
+                angle += rotation
+                nx = Math.cos(angle) * radius
+                ny = Math.sin(angle) * radius;
+                if (Math.abs(nx) > mx)
+                    mx = Math.abs(nx)
+                if (Math.abs(ny) > my)
+                    my = Math.abs(ny)
+            }
+
+            //Calculate the contain-image-only
+            debugPoints = []
+            for (let i = 0; i < points.length; i++) {
+                nextPointIndex = i + 1
+                if (nextPointIndex >= points.length)
+                    nextPointIndex = 0;
+
+                firstPoint = rotatePoint(points[i], rotation)
+                secondPoint = rotatePoint(points[nextPointIndex], rotation)
+
+                
+
+                firstPointX = firstPoint.x;
+                firstPointY = firstPoint.y;
+                secondPointX = secondPoint.x;
+                secondPointY = secondPoint.y;
+
+                dx = (firstPointX + secondPointX) / 2
+                dy = (firstPointY + secondPointY) / 2
+                debugPoints.push({ x: dx, y: dy })
+            }
+
+            interpolate = Math.abs(Math.sin(rotation))
+            scalar = minScalar + interpolate * (maxScalar - minScalar)
+
+            // scalar = minScalar
+
+            rotation += .01
+
+        }
+
+        function draw() {
+
+            ctx.fillStyle = "white"
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+
+            ctx.save()
+
+            ctx.translate(100, 100)
+
+            //Original
+            ctx.strokeStyle = "black"
+            ctx.beginPath();
+            ctx.rect(0, 0, width, height)
+            ctx.stroke()
+
+            //Rotated
+            ctx.save()
+            {
+                ctx.translate(width / 2, height / 2)
+                ctx.rotate(rotation)
+                ctx.translate(-width / 2, -height / 2)
+
+
+                ctx.strokeStyle = "blue"
+                ctx.beginPath();
+                ctx.rect(0, 0, width, height)
+                ctx.stroke()
+            }
+            ctx.restore()
+
+            //Canvas: Everything
+            ctx.save()
+            {
+                ctx.translate(width / 2, height / 2)
+                ctx.strokeStyle = "red"
+                ctx.beginPath();
+                ctx.rect(-mx, -my, mx * 2, my * 2)
+                ctx.stroke()
+            }
+            ctx.restore()
+
+            //Canvas: Maximum contained
+            ctx.save()
+            {
+                ctx.translate(width / 2, height / 2)
+                ctx.strokeStyle = "green"
+                ctx.beginPath();
+                ctx.rect(-width / 2 * scalar, -height / 2 * scalar, width * scalar, height * scalar)
+                ctx.stroke()
+            }
+            ctx.restore()
+
+            //Draw the debug points
+            ctx.save()
+            {
+                ctx.translate(width / 2, height / 2)
+                ctx.fillStyle = "cyan"
+                for (let point of debugPoints) {
+                    ctx.fillRect(point.x - 2, point.y - 2, 4, 4)
+                }
+            }
+            ctx.restore()
+
+            ctx.restore()
+
+        }
+
+        setInterval(tick, 100)
+
+
+
+
+    </script>
+</body>
+
+</html>
